@@ -118,3 +118,20 @@ import  {User} from '../models/user.model.js'
         
     }
  }
+
+ export const checkUserSession=async(req,res)=>{
+    if (!req.session.userId) {
+       return res.status(401).json({message:"User not logged in"})
+    }
+
+    const user= await User.findById(req.session.userId).select("-password")
+
+    if (!user) {
+       return res.status(400).json({message:"user not found while checking session"})
+    }
+
+      return res.status(200).json({user:user,message:"Session available"})
+
+ }
+
+ 
