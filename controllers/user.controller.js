@@ -51,7 +51,7 @@ import  {User} from '../models/user.model.js'
         }
         const loggedInUser=await User.findById(user._id).select("-password")
         req.session.userId=user?._id
-    
+   
         return res.status(200).json({User:loggedInUser,message:'User LoggedIn successfully'})
     
     } catch (error) {
@@ -129,7 +129,6 @@ import  {User} from '../models/user.model.js'
     if (!user) {
        return res.status(400).json({message:"user not found while checking session"})
     }
-
       return res.status(200).json({user:user,message:"Session available"})
 
  }

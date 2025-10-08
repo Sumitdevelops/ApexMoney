@@ -3,8 +3,15 @@ import session from 'express-session'
 import MongoStore from 'connect-mongo'
 import { connectDb } from './config/Db.js'
 import userRouter from './routers/user.router.js'
-
+import cors from "cors"
 const app = express()
+
+const corsOptions = {
+  origin: "http://localhost:5173", // Replace with your frontend's URL
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
 
 
 
