@@ -3,6 +3,7 @@ import session from 'express-session'
 import MongoStore from 'connect-mongo'
 import { connectDb } from './config/Db.js'
 import userRouter from './routers/user.router.js'
+import expenseRouter from './routers/expense.router.js'
 import cors from "cors"
 const app = express()
 
@@ -38,6 +39,7 @@ app.use(session({
 
 
 app.use("/create", userRouter)
+app.use('/api',expenseRouter)
 
 
 connectDb().then(() => {
