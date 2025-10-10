@@ -21,8 +21,10 @@ import  {User} from '../models/user.model.js'
         })
     
        req.session.userId=newUser?._id
+
+        const userToReturn = await User.findById(newUser._id).select("-password");
        
-        return res.status(200).json({message:"user registered"})
+        return res.status(200).json({User:userToReturn,message:"user registered"})
     } catch (error) {
      console.log("signup error:",error);
      return res.status(500).json({message:"Unable to Signup"})

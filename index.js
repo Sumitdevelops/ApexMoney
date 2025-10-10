@@ -4,6 +4,7 @@ import MongoStore from 'connect-mongo'
 import { connectDb } from './config/Db.js'
 import userRouter from './routers/user.router.js'
 import expenseRouter from './routers/expense.router.js'
+import incomeRouter from './routers/income.router.js'
 import cors from "cors"
 import dotenv from 'dotenv'
 const app = express()
@@ -33,7 +34,9 @@ app.use(session({
 }))
 
 app.use("/user", userRouter)
-app.use('/api',expenseRouter)
+app.use('/expense',expenseRouter)
+app.use('/income',incomeRouter)
+
 
 connectDb().then(() => {
     app.listen(process.env.PORT || 8000, () => {
