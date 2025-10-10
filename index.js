@@ -14,12 +14,7 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-
-
-
-
 app.use(express.json()) 
-
 
 app.use(session({
     secret: process.env.SESSION_SECRET,
@@ -37,11 +32,8 @@ app.use(session({
     }
 }))
 
-
-
-app.use("/create", userRouter)
+app.use("/user", userRouter)
 app.use('/api',expenseRouter)
-
 
 connectDb().then(() => {
     app.listen(process.env.PORT || 8000, () => {
