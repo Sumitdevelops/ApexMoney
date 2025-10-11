@@ -9,6 +9,10 @@ import cors from "cors"
 import dotenv from 'dotenv'
 const app = express()
 dotenv.config()
+
+if (process.env.NODE_ENV === "production") {
+    app.set('trust proxy', 1); // Trust the first proxy
+}
 const corsOptions = {
   origin: ["http://localhost:5173","https://apexmoney.netlify.app"],// Replace with your frontend's URL
   credentials: true,
