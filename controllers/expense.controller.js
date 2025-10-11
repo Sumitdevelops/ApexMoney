@@ -15,6 +15,8 @@ export const addExpense = async (req, res) => {
             category,
             date,
             notes,
+            
+           
 
         })
 
@@ -27,3 +29,15 @@ export const addExpense = async (req, res) => {
 
     }
 }
+
+export const getExpenses = async (req, res) => {
+  try {
+    const { userId } = req.query; // frontend should pass ?userId=...
+
+    const expenses = await Expense.find({ userId }).sort({ date: 1 });
+
+    res.status(200).json(expenses);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch expenses", error: error.message });
+  }
+};
