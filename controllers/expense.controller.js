@@ -36,8 +36,54 @@ export const getExpenses = async (req, res) => {
 
     const expenses = await Expense.find({ userId }).sort({ date: 1 });
 
-    res.status(200).json(expenses);
+    res.status(200).json({expenses});
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch expenses", error: error.message });
   }
 };
+
+export const updateExpense=async(req,res)=>{
+  try {
+    const {expenseId}=req.params
+    if (!expenseId) {
+      res.status(401).json({message:"problem in updating expense, no userID found"})
+    }
+    const updateExpense=await Expense.findByIdAndUpdate(expenseId,req.body,{
+      new:true
+    })
+
+    if (!updateExpense) {
+      res.status(400).json({message:"Unable to fetch updated expense"})
+    }
+    res.status(200).json({
+      success:true,
+      updateExpense:updateExpense,
+      message:"expense updated successfully"
+      
+    })
+  } catch (error) {
+    res.status(401).json({message:"User unauthorized"})
+  }
+}
+
+export const deleteExpense=async(req,res)=>{
+  try {
+    const {expenseId}=req.params
+    if (!expenseId) {
+      res.status(400).json({message:"unable to find userId to delete Expense"})
+    }
+    const deleteExpense=await Expense.findByIdAndDelete(expenseId,{
+      new:true
+    })
+    if (!deleteExpense) {
+      res.status(401).json({message:"unable to delete expense"})
+    }
+    res.status(200).json({
+      success:true,
+      deleteExpense:deleteExpense,
+      message:"Expense deleted successfully"
+    })
+  } catch (error) {
+    res.status(401).json({message:"user unauthorized"})
+  }
+}
