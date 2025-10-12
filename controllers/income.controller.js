@@ -48,7 +48,7 @@ export const updateIncome=async(req,res)=>{
     if (!incomeId) {
       res.status(401).json({message:"problem in updating expense, no userID found"})
     }
-    const updateIncome=await Expense.findByIdAndUpdate(incomeId,req.body,{
+    const updateIncome=await Income.findByIdAndUpdate(incomeId,req.body,{
       new:true
     })
 
@@ -72,7 +72,7 @@ export const deleteIncome=async(req,res)=>{
     if (!incomeId) {
       res.status(400).json({message:"unable to find userId to delete Expense"})
     }
-    const deleteIncome=await Expense.findByIdAndDelete(incomeId,{
+    const deleteIncome=await Income.findByIdAndDelete(incomeId,{
       new:true
     })
     if (!deleteIncome) {
