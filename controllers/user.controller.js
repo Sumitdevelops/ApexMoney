@@ -2,7 +2,8 @@ import bcrypt from 'bcrypt'
 import  {User} from '../models/user.model.js'
 
  export const Signup= async (req,res)=>{
-    const {email,password}=req.body
+    console.log("Received signup request with body:", req.body)
+    const {name,email,password}=req.body
     try {
         const existingUser=await User.findOne({email})
         if (existingUser) {
@@ -16,6 +17,7 @@ import  {User} from '../models/user.model.js'
         }
     
         const newUser=await User.create({
+            name,
             email,
             password:hashedPassword
         })
