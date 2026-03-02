@@ -1,16 +1,14 @@
-import mongoose from 'mongoose'
+import mongoose from 'mongoose';
 
 const expenseSchema = mongoose.Schema({
-
     userId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
         required: true,
-     },
+    },
     amount: {
         type: Number,
         required: true
-
     },
     category: {
         type: String,
@@ -22,9 +20,46 @@ const expenseSchema = mongoose.Schema({
     },
     notes: {
         type: String,
+    },
+    // Premium Features
+    merchant: {
+        type: String,
+        trim: true
+    },
+    isRecurring: {
+        type: Boolean,
+        default: false
+    },
+    recurringFrequency: {
+        type: String,
+        enum: ['daily', 'weekly', 'monthly', 'yearly'],
+    },
+    tags: [{
+        type: String,
+        trim: true
+    }],
+    // AI Features
+    aiCategorized: {
+        type: Boolean,
+        default: false
+    },
+    aiSuggestedCategory: {
+        type: String
+    },
+    aiConfidence: {
+        type: Number,
+        min: 0,
+        max: 100
+    },
+    isAnomaly: {
+        type: Boolean,
+        default: false
+    },
+    anomalyReason: {
+        type: String
     }
+}, {
+    timestamps: true
+});
 
-
-})
-
-export const Expense = mongoose.model("Expense", expenseSchema)
+export const Expense = mongoose.model("Expense", expenseSchema);
