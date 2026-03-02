@@ -5,7 +5,9 @@ import {
     predictSpending,
     getBudgetRecommendations,
     markInsightRead,
-    dismissInsight
+    dismissInsight,
+    aiChat,
+    scanReceipt
 } from '../controllers/ai.controller.js';
 
 const router = express.Router();
@@ -17,5 +19,7 @@ router.get('/predictions', predictSpending);
 router.get('/budget-recommendations', getBudgetRecommendations);
 router.patch('/insights/:insightId/read', markInsightRead);
 router.patch('/insights/:insightId/dismiss', dismissInsight);
+router.post('/chat', aiChat);
+router.post('/scan-receipt', scanReceipt);
 
 export default router;

@@ -65,7 +65,7 @@ const aiInsightSchema = new mongoose.Schema({
     },
     aiModel: {
         type: String,
-        default: 'gemini-pro'
+        default: 'gemini-2.0-flash'
     },
     confidence: {
         type: Number,

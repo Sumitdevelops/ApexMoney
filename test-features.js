@@ -32,7 +32,7 @@ async function testPremiumFeatures() {
                 amount: 5.50
             });
             log.success(`AI Categorization: ${catResponse.data.category} (${catResponse.data.confidence}% confidence)`);
-            log.info(`AI Powered: ${catResponse.data.aiPowered ? 'Yes (using Gemini)' : 'No (using rules)'}`);
+            log.info(`AI Powered: ${catResponse.data.aiPowered ? 'Yes (using OpenAI)' : 'No (using rules)'}`);
         } catch (error) {
             log.warn('AI categorization requires AI Pro subscription or user session');
             log.info(`Error: ${error.response?.data?.error || error.message}`);
