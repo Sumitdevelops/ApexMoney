@@ -26,17 +26,20 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json())
 
+const isProduction = process.env.NODE_ENV?.trim().toLowerCase() === "production";
+
 app.use(session({
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
+    proxy: true, // Required for Render and other proxies to set secure cookies
     store: MongoStore.create({
         mongoUrl: process.env.MONGODB_URL,
         collectionName: "session"
     }),
     cookie: {
-        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-        secure: process.env.NODE_ENV === "production",
+        sameSite: isProduction ? "none" : "lax",
+        secure: isProduction,
         httpOnly: true,
         maxAge: 1000 * 60 * 60 * 24
     }
