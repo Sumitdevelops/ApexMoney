@@ -2,6 +2,37 @@ import bcrypt from 'bcrypt'
 import { User } from '../models/user.model.js'
 import nodemailer from 'nodemailer'
 
+// Create a reusable transporter
+let transporter = null;
+
+const getTransporter = () => {
+   if (transporter) return transporter;
+   
+   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+      console.warn("EMAIL_USER or EMAIL_PASS not set");
+      return null;
+   }
+
+   transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+         user: process.env.EMAIL_USER,
+         pass: process.env.EMAIL_PASS,
+      },
+      connectionUrl: process.env.SMTP_CONNECTION_URL,
+      pool: {
+         maxConnections: 1,
+         maxMessages: Infinity,
+         rateDelta: 20000, // 20 seconds
+         rateLimit: 5, // max 5 messages per rateDelta
+      },
+      logger: false,
+      debug: false,
+   });
+
+   return transporter;
+};
+
 export const Signup = async (req, res) => {
    console.log("Received signup request with body:", req.body)
    const { name, email, password } = req.body
@@ -169,20 +200,14 @@ export const requestPasswordReset = async (req, res) => {
       user.resetPasswordExpires = expires;
       await user.save();
 
-      if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-         console.warn("EMAIL_USER or EMAIL_PASS not set; skipping email send");
+      const emailTransporter = getTransporter();
+      if (!emailTransporter) {
+         console.warn("Email not configured, returning OTP in debug mode");
          return res.status(200).json({ message: "OTP generated (email not configured in server).", otpDebug: otp });
       }
 
-      const transporter = nodemailer.createTransport({
-         service: 'gmail',
-         auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS,
-         },
-      });
-
-      await transporter.sendMail({
+      // Send email asynchronously without blocking the response
+      const mailOptions = {
          from: `"ApexMoney" <${process.env.EMAIL_USER}>`,
          to: email,
          subject: 'ApexMoney Password Reset OTP',
@@ -192,12 +217,30 @@ export const requestPasswordReset = async (req, res) => {
             <div style="font-size:32px;font-weight:bold;letter-spacing:8px;text-align:center;padding:16px;background:#f3f4f6;border-radius:12px;margin:16px 0">${otp}</div>
             <p style="color:#6b7280;font-size:14px">This code is valid for 15 minutes. If you didn't request this, you can safely ignore this email.</p>
          </div>`,
+      };
+
+      // Send email with timeout
+      const emailTimeout = setTimeout(() => {
+         console.error('Email send timeout for user:', email);
+      }, 10000);
+
+      emailTransporter.sendMail(mailOptions, (err, info) => {
+         clearTimeout(emailTimeout);
+         if (err) {
+            console.error("Email send error:", err);
+            // Still consider it success for user - they can request OTP again
+         } else {
+            console.log("Email sent successfully:", info.response);
+         }
       });
 
+      // Return success immediately without waiting for email
       return res.status(200).json({ message: "OTP sent to email" });
    } catch (error) {
       console.log("requestPasswordReset error:", error);
       return res.status(500).json({ message: "Unable to start password reset" });
+   }
+};
    }
 };
 
