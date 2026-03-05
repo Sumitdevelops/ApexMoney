@@ -1,3 +1,5 @@
+import dotenv from 'dotenv'
+dotenv.config()
 import express from 'express'
 import session from 'express-session'
 import MongoStore from 'connect-mongo'
@@ -9,10 +11,10 @@ import aiRouter from './routers/ai.router.js'
 import goalRouter from './routers/goal.router.js'
 import subscriptionRouter from './routers/subscription.router.js'
 import reminderRouter from './routers/reminder.router.js'
+import authRouter from './routers/auth.router.js'
 import cors from "cors"
-import dotenv from 'dotenv'
+import passport from './config/passport.js'
 const app = express()
-dotenv.config()
 
 app.set('trust proxy', 1)
 
@@ -40,6 +42,9 @@ app.use(session({
     }
 }))
 
+app.use(passport.initialize());
+app.use(passport.session());
+
 app.use("/user", userRouter)
 app.use('/expense', expenseRouter)
 app.use('/income', incomeRouter)
@@ -47,6 +52,7 @@ app.use('/ai', aiRouter)
 app.use('/goals', goalRouter)
 app.use('/subscriptions', subscriptionRouter)
 app.use('/reminders', reminderRouter)
+app.use('/auth', authRouter)
 
 
 connectDb().then(() => {

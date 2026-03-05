@@ -17,6 +17,23 @@ const userSchema = new mongoose.Schema({
         required: true,
         trim: true
     },
+    authProvider: {
+        type: String,
+        enum: ['local', 'google', 'facebook'],
+        default: 'local'
+    },
+    authProviderId: {
+        type: String,
+        default: null
+    },
+    resetPasswordOTP: {
+        type: String,
+        default: null
+    },
+    resetPasswordExpires: {
+        type: Date,
+        default: null
+    },
     // Premium Features
     subscriptionTier: {
         type: String,
