@@ -32,10 +32,25 @@ router.get(
     session: true,
   }),
   (req, res) => {
+    console.log('--- Google OAuth Callback Debug ---');
+    console.log('Authenticated User:', req.user?._id || 'None');
+    console.log('Session ID:', req.sessionID);
+
     if (req.user?._id) {
       req.session.userId = req.user._id;
+      // Explicitly save the session before redirecting to ensure persistence
+      req.session.save((err) => {
+        if (err) {
+          console.error('Session save error:', err);
+          return res.redirect(`${FRONTEND_URL}/signup/login?error=session_save_failed`);
+        }
+        console.log('Session saved successfully for userId:', req.user._id);
+        res.redirect(`${FRONTEND_URL}/dashboard`);
+      });
+    } else {
+      console.warn('No user found in callback, redirecting to login.');
+      res.redirect(`${FRONTEND_URL}/signup/login`);
     }
-    res.redirect(`${FRONTEND_URL}/dashboard`);
   },
 );
 

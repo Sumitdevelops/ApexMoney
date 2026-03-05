@@ -125,17 +125,30 @@ export const changePassword = async (req, res) => {
 }
 
 export const checkUserSession = async (req, res) => {
+   console.log('--- Check User Session Debug ---');
+   console.log('Session ID:', req.sessionID);
+   console.log('Session Content:', JSON.stringify(req.session));
+   console.log('Session userId:', req.session.userId);
+
    if (!req.session.userId) {
+      console.warn('Session check failed: No userId found in session.');
       return res.status(401).json({ message: "User not logged in" })
    }
 
-   const user = await User.findById(req.session.userId).select("-password")
+   try {
+      const user = await User.findById(req.session.userId).select("-password")
 
-   if (!user) {
-      return res.status(400).json({ message: "user not found while checking session" })
+      if (!user) {
+         console.error('Session check failed: User ID in session does not exist in database:', req.session.userId);
+         return res.status(400).json({ message: "user not found while checking session" })
+      }
+
+      console.log('Session check successful for user:', user.email);
+      return res.status(200).json({ user: user, message: "Session available" })
+   } catch (error) {
+      console.error('Session check error:', error);
+      return res.status(500).json({ message: "Internal server error during session check" });
    }
-   return res.status(200).json({ user: user, message: "Session available" })
-
 }
 
 export const requestPasswordReset = async (req, res) => {
