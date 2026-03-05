@@ -28,22 +28,33 @@ app.use(express.json())
 
 const isProduction = process.env.NODE_ENV?.trim().toLowerCase() === "production";
 
-app.use(session({
+// For cross-origin OAuth (backend ≠ frontend domain), we need sameSite: "none" and secure: true
+const sessionConfig = {
     secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
+    resave: true, // Save even if unmodified - important for OAuth persistence
+    saveUninitialized: true, // Initialize session even for unauthenticated requests - important for OAuth
     proxy: true, // Required for Render and other proxies to set secure cookies
     store: MongoStore.create({
         mongoUrl: process.env.MONGODB_URL,
         collectionName: "session"
     }),
+    name: "sessionId", // Custom session cookie name
     cookie: {
-        sameSite: isProduction ? "none" : "lax",
-        secure: isProduction,
-        httpOnly: true,
-        maxAge: 1000 * 60 * 60 * 24
+        sameSite: "none", // Allow cross-origin cookies (required for OAuth redirect to different domain)
+        secure: true,     // HTTPS only (required when sameSite: "none")
+        httpOnly: true,   // Prevent JS access
+        maxAge: 1000 * 60 * 60 * 24,
+        domain: undefined // Let browser set it automatically based on request
     }
-}))
+};
+
+// In development, use lax sameSite if both frontend and backend are on localhost
+if (!isProduction && process.env.FRONTEND_URL?.includes('localhost')) {
+    sessionConfig.cookie.sameSite = "lax";
+    sessionConfig.cookie.secure = false;
+}
+
+app.use(session(sessionConfig))
 
 app.use(passport.initialize());
 app.use(passport.session());
