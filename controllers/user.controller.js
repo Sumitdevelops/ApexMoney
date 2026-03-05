@@ -241,8 +241,6 @@ export const requestPasswordReset = async (req, res) => {
       return res.status(500).json({ message: "Unable to start password reset" });
    }
 };
-   }
-};
 
 export const verifyOTP = async (req, res) => {
    try {
