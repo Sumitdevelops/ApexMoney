@@ -13,15 +13,22 @@ const getTransporter = () => {
       return null;
    }
 
+   // Strip spaces from App Password (Gmail displays them with spaces but SMTP needs them removed)
+   const emailPass = process.env.EMAIL_PASS.replace(/\s/g, '');
+
+   console.log('Creating email transporter for:', process.env.EMAIL_USER);
+
    transporter = nodemailer.createTransport({
-      service: 'gmail',
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
       auth: {
          user: process.env.EMAIL_USER,
-         pass: process.env.EMAIL_PASS,
+         pass: emailPass,
       },
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 15000,
+      connectionTimeout: 30000,
+      greetingTimeout: 30000,
+      socketTimeout: 30000,
    });
 
    // Verify connection on first creation
@@ -30,7 +37,7 @@ const getTransporter = () => {
          console.error('Email transporter verification failed:', err.message);
          transporter = null; // Reset so next call retries
       } else {
-         console.log('Email transporter ready');
+         console.log('Email transporter ready and verified');
       }
    });
 
