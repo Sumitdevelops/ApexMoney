@@ -15,11 +15,11 @@ const createTransporter = () => {
    console.log('Creating email transporter for:', process.env.EMAIL_USER);
    console.log('EMAIL_PASS length after stripping spaces:', emailPass.length);
 
-   // Use port 587 + STARTTLS (more compatible with cloud providers than 465 + SSL)
+   // Use port 465 + direct SSL (more reliable on Render and other cloud platforms)
    return nodemailer.createTransport({
       host: 'smtp.gmail.com',
-      port: 587,
-      secure: false,
+      port: 465,
+      secure: true,
       auth: {
          user: process.env.EMAIL_USER,
          pass: emailPass,
@@ -27,9 +27,9 @@ const createTransporter = () => {
       tls: {
          rejectUnauthorized: false,
       },
-      connectionTimeout: 30000,
+      connectionTimeout: 60000,
       greetingTimeout: 30000,
-      socketTimeout: 30000,
+      socketTimeout: 60000,
    });
 };
 
@@ -229,7 +229,7 @@ export const requestPasswordReset = async (req, res) => {
       // Give a useful message based on the error type
       const errorCode = error.code || '';
       const errorMsg = error.message || '';
-      
+
       if (errorCode === 'EAUTH') {
          return res.status(500).json({ message: "Email authentication failed. EMAIL_PASS must be a Gmail App Password (not regular password). Generate one at myaccount.google.com/apppasswords" });
       }
