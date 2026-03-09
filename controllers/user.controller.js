@@ -1,36 +1,37 @@
 import bcrypt from 'bcrypt'
 import { User } from '../models/user.model.js'
-import nodemailer from 'nodemailer'
+import { Resend } from 'resend'
 
-// Create a fresh transporter each time (avoids stale connection issues on Render)
-const createTransporter = () => {
-   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-      console.warn("EMAIL_USER or EMAIL_PASS not set");
-      return null;
+// Send OTP email via Resend HTTP API (works reliably from cloud platforms like Render)
+const sendOTPEmail = async (toEmail, otp) => {
+   if (!process.env.RESEND_API_KEY) {
+      console.error("RESEND_API_KEY is not set");
+      throw new Error("Email service is not configured. RESEND_API_KEY is missing.");
    }
 
-   // Strip spaces from App Password (Gmail displays them with spaces but SMTP needs them removed)
-   const emailPass = process.env.EMAIL_PASS.replace(/\s/g, '');
+   const resend = new Resend(process.env.RESEND_API_KEY);
 
-   console.log('Creating email transporter for:', process.env.EMAIL_USER);
-   console.log('EMAIL_PASS length after stripping spaces:', emailPass.length);
+   console.log('Sending OTP email via Resend to:', toEmail);
 
-   // Use port 465 + direct SSL (more reliable on Render and other cloud platforms)
-   return nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 465,
-      secure: true,
-      auth: {
-         user: process.env.EMAIL_USER,
-         pass: emailPass,
-      },
-      tls: {
-         rejectUnauthorized: false,
-      },
-      connectionTimeout: 60000,
-      greetingTimeout: 30000,
-      socketTimeout: 60000,
+   const { data, error } = await resend.emails.send({
+      from: 'ApexMoney <onboarding@resend.dev>',
+      to: toEmail,
+      subject: 'ApexMoney Password Reset OTP',
+      html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
+         <h2 style="color:#7c3aed">ApexMoney</h2>
+         <p>Your OTP for resetting your password is:</p>
+         <div style="font-size:32px;font-weight:bold;letter-spacing:8px;text-align:center;padding:16px;background:#f3f4f6;border-radius:12px;margin:16px 0">${otp}</div>
+         <p style="color:#6b7280;font-size:14px">This code is valid for 15 minutes. If you didn't request this, you can safely ignore this email.</p>
+      </div>`,
    });
+
+   if (error) {
+      console.error('Resend API error:', error);
+      throw new Error(error.message || 'Failed to send email via Resend');
+   }
+
+   console.log('OTP email sent successfully via Resend, ID:', data?.id);
+   return data;
 };
 
 export const Signup = async (req, res) => {
@@ -200,48 +201,13 @@ export const requestPasswordReset = async (req, res) => {
       user.resetPasswordExpires = expires;
       await user.save();
 
-      const emailTransporter = createTransporter();
-      if (!emailTransporter) {
-         console.warn("Email not configured on server");
-         return res.status(500).json({ message: "Email service is not configured on the server. Please contact support." });
-      }
-
-      const mailOptions = {
-         from: `"ApexMoney" <${process.env.EMAIL_USER}>`,
-         to: email,
-         subject: 'ApexMoney Password Reset OTP',
-         html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
-            <h2 style="color:#7c3aed">ApexMoney</h2>
-            <p>Your OTP for resetting your password is:</p>
-            <div style="font-size:32px;font-weight:bold;letter-spacing:8px;text-align:center;padding:16px;background:#f3f4f6;border-radius:12px;margin:16px 0">${otp}</div>
-            <p style="color:#6b7280;font-size:14px">This code is valid for 15 minutes. If you didn't request this, you can safely ignore this email.</p>
-         </div>`,
-      };
-
-      // Actually await the email send so we know if it fails
-      await emailTransporter.sendMail(mailOptions);
-      console.log("OTP email sent successfully to:", email);
+      // Send OTP via Resend HTTP API
+      await sendOTPEmail(email, otp);
 
       return res.status(200).json({ message: "OTP sent to email" });
    } catch (error) {
       console.error("requestPasswordReset error:", error);
-
-      // Give a useful message based on the error type
-      const errorCode = error.code || '';
-      const errorMsg = error.message || '';
-
-      if (errorCode === 'EAUTH') {
-         return res.status(500).json({ message: "Email authentication failed. EMAIL_PASS must be a Gmail App Password (not regular password). Generate one at myaccount.google.com/apppasswords" });
-      }
-      if (errorCode === 'ESOCKET' || errorCode === 'ECONNECTION' || errorCode === 'ETIMEDOUT') {
-         return res.status(500).json({ message: "Could not connect to email server. Please try again later." });
-      }
-      if (errorCode === 'EENVELOPE') {
-         return res.status(500).json({ message: "Invalid email address format." });
-      }
-
-      // Include error details for debugging
-      return res.status(500).json({ message: `Unable to send OTP: ${errorCode || errorMsg || 'Unknown error'}` });
+      return res.status(500).json({ message: error.message || "Unable to send OTP. Please try again later." });
    }
 };
 
