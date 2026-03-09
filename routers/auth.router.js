@@ -1,5 +1,7 @@
 import express from 'express';
+import crypto from 'crypto';
 import passport from '../config/passport.js';
+import { User } from '../models/user.model.js';
 
 const router = express.Router();
 
@@ -19,25 +21,6 @@ router.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Auth router is loaded' });
 });
 
-// Endpoint to verify if OAuth session was successful
-router.get('/verify-session', (req, res) => {
-  console.log('--- Verify Session Endpoint ---');
-  console.log('Session ID:', req.sessionID);
-  console.log('Session userId:', req.session.userId);
-  
-  if (req.session.userId) {
-    return res.json({
-      authenticated: true,
-      message: 'Session verified from OAuth'
-    });
-  }
-  
-  return res.status(401).json({
-    authenticated: false,
-    message: 'No session found'
-  });
-});
-
 router.get(
   '/google',
   requireGoogleOAuth,
@@ -47,40 +30,73 @@ router.get(
 router.get(
   '/google/callback',
   passport.authenticate('google', {
-    failureRedirect: `${FRONTEND_URL}/signup/login`,
-    session: true,
+    failureRedirect: `${FRONTEND_URL}/signup/login?error=google_auth_failed`,
+    session: false, // Don't rely on session cookies for cross-origin
   }),
-  (req, res) => {
-    console.log('--- Google OAuth Callback Debug ---');
-    console.log('Authenticated:', !!req.user);
-    console.log('User ID:', req.user?._id || 'None');
-    console.log('User Email:', req.user?.email || 'None');
-    console.log('Session ID:', req.sessionID);
-    console.log('Session Content:', JSON.stringify(req.session));
+  async (req, res) => {
+    try {
+      if (!req.user?._id) {
+        console.warn('No user found in Google OAuth callback');
+        return res.redirect(`${FRONTEND_URL}/signup/login?error=no_user`);
+      }
 
-    if (req.user?._id) {
-      req.session.userId = req.user._id;
-      req.session.userEmail = req.user.email;
-      
-      // Explicitly save the session before redirecting to ensure persistence
-      req.session.save((err) => {
-        if (err) {
-          console.error('Session save error:', err);
-          return res.redirect(`${FRONTEND_URL}/signup/login?error=session_save_failed`);
-        }
-        
-        console.log('✅ Session saved successfully');
-        console.log('Session ID being sent with redirect:', req.sessionID);
-        
-        // Redirect to dashboard - the session cookie will be included in the response
-        res.redirect(`${FRONTEND_URL}/dashboard`);
+      // Generate a one-time token for the frontend to exchange
+      const token = crypto.randomBytes(32).toString('hex');
+      const tokenExpires = new Date(Date.now() + 2 * 60 * 1000); // 2 minutes
+
+      // Store token on the user document
+      await User.findByIdAndUpdate(req.user._id, {
+        oauthToken: token,
+        oauthTokenExpires: tokenExpires,
       });
-    } else {
-      console.warn('❌ No user found in callback');
-      res.redirect(`${FRONTEND_URL}/signup/login?error=no_user`);
+
+      console.log('Google OAuth: token generated for user', req.user.email);
+
+      // Redirect to frontend with the token in the URL
+      res.redirect(`${FRONTEND_URL}/dashboard?token=${token}`);
+    } catch (err) {
+      console.error('Google OAuth callback error:', err);
+      res.redirect(`${FRONTEND_URL}/signup/login?error=server_error`);
     }
   },
 );
+
+// Exchange one-time token for user data + session
+router.post('/exchange-token', async (req, res) => {
+  try {
+    const { token } = req.body;
+
+    if (!token) {
+      return res.status(400).json({ message: 'Token is required' });
+    }
+
+    // Find user with this token that hasn't expired
+    const user = await User.findOne({
+      oauthToken: token,
+      oauthTokenExpires: { $gt: new Date() },
+    }).select('-password');
+
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid or expired token' });
+    }
+
+    // Clear the token so it can't be reused
+    await User.findByIdAndUpdate(user._id, {
+      oauthToken: null,
+      oauthTokenExpires: null,
+    });
+
+    // Set the session for future requests
+    req.session.userId = user._id;
+
+    console.log('Token exchanged successfully for user:', user.email);
+
+    return res.status(200).json({ user, message: 'Authenticated successfully' });
+  } catch (err) {
+    console.error('Token exchange error:', err);
+    return res.status(500).json({ message: 'Token exchange failed' });
+  }
+});
 
 export default router;
 

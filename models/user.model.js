@@ -34,6 +34,14 @@ const userSchema = new mongoose.Schema({
         type: Date,
         default: null
     },
+    oauthToken: {
+        type: String,
+        default: null
+    },
+    oauthTokenExpires: {
+        type: Date,
+        default: null
+    },
     // Premium Features
     subscriptionTier: {
         type: String,
