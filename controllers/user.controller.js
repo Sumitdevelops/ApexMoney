@@ -2,12 +2,8 @@ import bcrypt from 'bcrypt'
 import { User } from '../models/user.model.js'
 import nodemailer from 'nodemailer'
 
-// Create a reusable transporter
-let transporter = null;
-
-const getTransporter = () => {
-   if (transporter) return transporter;
-   
+// Create a fresh transporter each time (avoids stale connection issues on Render)
+const createTransporter = () => {
    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
       console.warn("EMAIL_USER or EMAIL_PASS not set");
       return null;
@@ -17,31 +13,24 @@ const getTransporter = () => {
    const emailPass = process.env.EMAIL_PASS.replace(/\s/g, '');
 
    console.log('Creating email transporter for:', process.env.EMAIL_USER);
+   console.log('EMAIL_PASS length after stripping spaces:', emailPass.length);
 
-   transporter = nodemailer.createTransport({
+   // Use port 587 + STARTTLS (more compatible with cloud providers than 465 + SSL)
+   return nodemailer.createTransport({
       host: 'smtp.gmail.com',
-      port: 465,
-      secure: true,
+      port: 587,
+      secure: false,
       auth: {
          user: process.env.EMAIL_USER,
          pass: emailPass,
+      },
+      tls: {
+         rejectUnauthorized: false,
       },
       connectionTimeout: 30000,
       greetingTimeout: 30000,
       socketTimeout: 30000,
    });
-
-   // Verify connection on first creation
-   transporter.verify((err, success) => {
-      if (err) {
-         console.error('Email transporter verification failed:', err.message);
-         transporter = null; // Reset so next call retries
-      } else {
-         console.log('Email transporter ready and verified');
-      }
-   });
-
-   return transporter;
 };
 
 export const Signup = async (req, res) => {
@@ -211,7 +200,7 @@ export const requestPasswordReset = async (req, res) => {
       user.resetPasswordExpires = expires;
       await user.save();
 
-      const emailTransporter = getTransporter();
+      const emailTransporter = createTransporter();
       if (!emailTransporter) {
          console.warn("Email not configured on server");
          return res.status(500).json({ message: "Email service is not configured on the server. Please contact support." });
