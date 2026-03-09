@@ -19,15 +19,16 @@ const getTransporter = () => {
          user: process.env.EMAIL_USER,
          pass: process.env.EMAIL_PASS,
       },
-      connectionUrl: process.env.SMTP_CONNECTION_URL,
-      pool: {
-         maxConnections: 1,
-         maxMessages: Infinity,
-         rateDelta: 20000, // 20 seconds
-         rateLimit: 5, // max 5 messages per rateDelta
-      },
-      logger: false,
-      debug: false,
+   });
+
+   // Verify connection on first creation
+   transporter.verify((err, success) => {
+      if (err) {
+         console.error('Email transporter verification failed:', err.message);
+         transporter = null; // Reset so next call retries
+      } else {
+         console.log('Email transporter ready');
+      }
    });
 
    return transporter;
@@ -202,11 +203,10 @@ export const requestPasswordReset = async (req, res) => {
 
       const emailTransporter = getTransporter();
       if (!emailTransporter) {
-         console.warn("Email not configured, returning OTP in debug mode");
-         return res.status(200).json({ message: "OTP generated (email not configured in server).", otpDebug: otp });
+         console.warn("Email not configured on server");
+         return res.status(500).json({ message: "Email service is not configured on the server. Please contact support." });
       }
 
-      // Send email asynchronously without blocking the response
       const mailOptions = {
          from: `"ApexMoney" <${process.env.EMAIL_USER}>`,
          to: email,
@@ -219,26 +219,23 @@ export const requestPasswordReset = async (req, res) => {
          </div>`,
       };
 
-      // Send email with timeout
-      const emailTimeout = setTimeout(() => {
-         console.error('Email send timeout for user:', email);
-      }, 10000);
+      // Actually await the email send so we know if it fails
+      await emailTransporter.sendMail(mailOptions);
+      console.log("OTP email sent successfully to:", email);
 
-      emailTransporter.sendMail(mailOptions, (err, info) => {
-         clearTimeout(emailTimeout);
-         if (err) {
-            console.error("Email send error:", err);
-            // Still consider it success for user - they can request OTP again
-         } else {
-            console.log("Email sent successfully:", info.response);
-         }
-      });
-
-      // Return success immediately without waiting for email
       return res.status(200).json({ message: "OTP sent to email" });
    } catch (error) {
-      console.log("requestPasswordReset error:", error);
-      return res.status(500).json({ message: "Unable to start password reset" });
+      console.error("requestPasswordReset error:", error);
+
+      // Give a useful message if it's an auth/config error
+      if (error.code === 'EAUTH') {
+         return res.status(500).json({ message: "Email authentication failed. The server's email credentials may be invalid." });
+      }
+      if (error.code === 'ESOCKET' || error.code === 'ECONNECTION') {
+         return res.status(500).json({ message: "Could not connect to email server. Please try again later." });
+      }
+
+      return res.status(500).json({ message: "Unable to send OTP. Please try again." });
    }
 };
 
