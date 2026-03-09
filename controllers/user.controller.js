@@ -230,15 +230,22 @@ export const requestPasswordReset = async (req, res) => {
    } catch (error) {
       console.error("requestPasswordReset error:", error);
 
-      // Give a useful message if it's an auth/config error
-      if (error.code === 'EAUTH') {
-         return res.status(500).json({ message: "Email authentication failed. The server's email credentials may be invalid." });
+      // Give a useful message based on the error type
+      const errorCode = error.code || '';
+      const errorMsg = error.message || '';
+      
+      if (errorCode === 'EAUTH') {
+         return res.status(500).json({ message: "Email authentication failed. EMAIL_PASS must be a Gmail App Password (not regular password). Generate one at myaccount.google.com/apppasswords" });
       }
-      if (error.code === 'ESOCKET' || error.code === 'ECONNECTION') {
+      if (errorCode === 'ESOCKET' || errorCode === 'ECONNECTION' || errorCode === 'ETIMEDOUT') {
          return res.status(500).json({ message: "Could not connect to email server. Please try again later." });
       }
+      if (errorCode === 'EENVELOPE') {
+         return res.status(500).json({ message: "Invalid email address format." });
+      }
 
-      return res.status(500).json({ message: "Unable to send OTP. Please try again." });
+      // Include error details for debugging
+      return res.status(500).json({ message: `Unable to send OTP: ${errorCode || errorMsg || 'Unknown error'}` });
    }
 };
 
