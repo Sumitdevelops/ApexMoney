@@ -74,4 +74,6 @@ financialGoalSchema.virtual('progressPercentage').get(function () {
     return Math.min((this.currentAmount / this.targetAmount) * 100, 100);
 });
 
+financialGoalSchema.index({ userId: 1 });
+
 export const FinancialGoal = mongoose.model("FinancialGoal", financialGoalSchema);

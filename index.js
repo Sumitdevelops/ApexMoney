@@ -3,6 +3,8 @@ dotenv.config()
 import express from 'express'
 import session from 'express-session'
 import MongoStore from 'connect-mongo'
+import helmet from 'helmet'
+import rateLimit from 'express-rate-limit'
 import { connectDb } from './config/Db.js'
 import userRouter from './routers/user.router.js'
 import expenseRouter from './routers/expense.router.js'
@@ -14,9 +16,13 @@ import reminderRouter from './routers/reminder.router.js'
 import authRouter from './routers/auth.router.js'
 import cors from "cors"
 import passport from './config/passport.js'
+import { errorHandler } from './middleware/errorHandler.js'
 const app = express()
 
 app.set('trust proxy', 1)
+
+// Security headers
+app.use(helmet())
 
 const corsOptions = {
     origin: ["http://localhost:5173", "http://localhost:5174", "https://apexmoney.netlify.app"],// Replace with your frontend's URL
@@ -25,6 +31,29 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 app.use(express.json())
+
+// Rate limiters
+const authLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 5,
+    message: { success: false, message: 'Too many requests, please try again after a minute' },
+    standardHeaders: true,
+    legacyHeaders: false,
+})
+
+const generalLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 60,
+    message: { success: false, message: 'Too many requests, please try again later' },
+    standardHeaders: true,
+    legacyHeaders: false,
+})
+
+app.use('/user/signup', authLimiter)
+app.use('/user/login', authLimiter)
+app.use('/user/forgot-password', authLimiter)
+app.use('/auth', authLimiter)
+app.use(generalLimiter)
 
 const isProduction = process.env.NODE_ENV?.trim().toLowerCase() === "production";
 
@@ -68,6 +97,8 @@ app.use('/subscriptions', subscriptionRouter)
 app.use('/reminders', reminderRouter)
 app.use('/auth', authRouter)
 
+// Centralized error handler (must be last)
+app.use(errorHandler)
 
 connectDb().then(() => {
     app.listen(process.env.PORT || 8000, () => {

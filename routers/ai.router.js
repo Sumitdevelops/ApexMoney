@@ -9,17 +9,18 @@ import {
     aiChat,
     scanReceipt
 } from '../controllers/ai.controller.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = express.Router();
 
 // AI endpoints
-router.post('/categorize', categorizeExpense);
-router.get('/insights', generateInsights);
-router.get('/predictions', predictSpending);
-router.get('/budget-recommendations', getBudgetRecommendations);
-router.patch('/insights/:insightId/read', markInsightRead);
-router.patch('/insights/:insightId/dismiss', dismissInsight);
-router.post('/chat', aiChat);
-router.post('/scan-receipt', scanReceipt);
+router.post('/categorize', requireAuth, categorizeExpense);
+router.get('/insights', requireAuth, generateInsights);
+router.get('/predictions', requireAuth, predictSpending);
+router.get('/budget-recommendations', requireAuth, getBudgetRecommendations);
+router.patch('/insights/:insightId/read', requireAuth, markInsightRead);
+router.patch('/insights/:insightId/dismiss', requireAuth, dismissInsight);
+router.post('/chat', requireAuth, aiChat);
+router.post('/scan-receipt', requireAuth, scanReceipt);
 
 export default router;

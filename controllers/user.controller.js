@@ -1,5 +1,11 @@
 import bcrypt from 'bcrypt'
 import { User } from '../models/user.model.js'
+import { Expense } from '../models/expense.model.js'
+import { Income } from '../models/income.model.js'
+import { FinancialGoal } from '../models/financialGoal.model.js'
+import { Subscription } from '../models/subscription.model.js'
+import { AIInsight } from '../models/aiInsight.model.js'
+import { BillReminder } from '../models/billReminder.model.js'
 import { Resend } from 'resend'
 
 // Send OTP email via Resend HTTP API (works reliably from cloud platforms like Render)
@@ -271,3 +277,83 @@ export const resetPasswordWithOTP = async (req, res) => {
    }
 };
 
+export const deleteAccount = async (req, res) => {
+   try {
+      const userId = req.session.userId;
+      if (!userId) {
+         return res.status(401).json({ success: false, message: "Not authenticated" });
+      }
+
+      // Delete all related data in parallel
+      await Promise.all([
+         Expense.deleteMany({ userId }),
+         Income.deleteMany({ userId }),
+         FinancialGoal.deleteMany({ userId }),
+         Subscription.deleteMany({ userId }),
+         AIInsight.deleteMany({ userId }),
+         BillReminder.deleteMany({ userId }),
+      ]);
+
+      // Delete user document
+      await User.findByIdAndDelete(userId);
+
+      // Destroy session
+      req.session.destroy((err) => {
+         if (err) {
+            console.error("Session destroy error during account deletion:", err);
+         }
+         res.clearCookie('connect.sid');
+         res.clearCookie('sessionId');
+         return res.status(200).json({ success: true, message: "Account and all data deleted successfully" });
+      });
+   } catch (error) {
+      console.error("deleteAccount error:", error);
+      return res.status(500).json({ success: false, message: "Failed to delete account" });
+   }
+};
+
+export const exportData = async (req, res) => {
+   try {
+      const userId = req.session.userId;
+      if (!userId) {
+         return res.status(401).json({ success: false, message: "Not authenticated" });
+      }
+
+      const user = await User.findById(userId);
+      if (!user) {
+         return res.status(404).json({ success: false, message: "User not found" });
+      }
+
+      // Fetch all user data (filtered by userId)
+      const [expenses, income, goals, subscriptions, aiInsights] = await Promise.all([
+         Expense.find({ userId }).lean(),
+         Income.find({ userId }).lean(),
+         FinancialGoal.find({ userId }).lean(),
+         Subscription.find({ userId }).lean(),
+         AIInsight.find({ userId }).lean(),
+      ]);
+
+      const exportData = {
+         user: {
+            id: user._id,
+            name: user.name,
+            email: user.email,
+            createdAt: user.createdAt,
+            preferences: user.preferences,
+         },
+         expenses,
+         income,
+         goals,
+         subscriptions,
+         aiInsights,
+         exportedAt: new Date().toISOString(),
+      };
+
+      res.set('Content-Type', 'application/json');
+      res.set('Content-Disposition', `attachment; filename="apexmoney-export-${Date.now()}.json"`);
+      return res.status(200).json(exportData);
+   } catch (error) {
+      console.error("exportData error:", error);
+      return res.status(500).json({ success: false, message: "Failed to export data" });
+   }
+};

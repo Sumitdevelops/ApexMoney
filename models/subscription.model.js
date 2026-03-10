@@ -93,4 +93,6 @@ subscriptionSchema.virtual('annualCost').get(function () {
     return this.amount * (multipliers[this.billingCycle] || 12);
 });
 
+subscriptionSchema.index({ userId: 1 });
+
 export const Subscription = mongoose.model("Subscription", subscriptionSchema);
