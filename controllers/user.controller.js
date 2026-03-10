@@ -65,6 +65,15 @@ export const Signup = async (req, res) => {
 
       const userToReturn = await User.findById(newUser._id).select("-password");
 
+      // Explicitly save session to MongoStore before responding
+      // This prevents race conditions where the next request arrives before the session is persisted
+      await new Promise((resolve, reject) => {
+         req.session.save((err) => {
+            if (err) reject(err);
+            else resolve();
+         });
+      });
+
       return res.status(200).json({ User: userToReturn, message: "user registered" })
    } catch (error) {
       console.log("signup error:", error);
@@ -95,6 +104,15 @@ export const login = async (req, res) => {
       const loggedInUser = await User.findById(user._id).select("-password")
       req.session.userId = user?._id
 
+      // Explicitly save session to MongoStore before responding
+      // This prevents race conditions where the next request arrives before the session is persisted
+      await new Promise((resolve, reject) => {
+         req.session.save((err) => {
+            if (err) reject(err);
+            else resolve();
+         });
+      });
+
       return res.status(200).json({ User: loggedInUser, message: 'User LoggedIn successfully' })
 
    } catch (error) {
@@ -111,7 +129,7 @@ export const logout = (req, res) => {
          if (err) {
             return res.status(500).json({ message: "internal server error" })
          }
-         res.clearCookie('connect.sid')
+         res.clearCookie('sessionId')
          return res.status(200).json({ message: "User logged out successfully" })
 
 

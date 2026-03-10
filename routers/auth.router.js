@@ -89,6 +89,14 @@ router.post('/exchange-token', async (req, res) => {
     // Set the session for future requests
     req.session.userId = user._id;
 
+    // Explicitly save session to MongoStore before responding
+    await new Promise((resolve, reject) => {
+      req.session.save((err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+
     console.log('Token exchanged successfully for user:', user.email);
 
     return res.status(200).json({ user, message: 'Authenticated successfully' });
