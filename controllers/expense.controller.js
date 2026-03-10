@@ -7,6 +7,9 @@ export const addExpense = async (req, res) => {
   const userId = req.session.userId;
 
   try {
+    if (!userId) {
+      return res.status(401).json({ message: "Authentication required. Please log in again." });
+    }
     if ([amount, category, date].some((item) => item === "" || item === undefined)) {
       return res.status(400).json({ message: "All required fields must be provided" })
     }
@@ -25,8 +28,8 @@ export const addExpense = async (req, res) => {
 
 
   } catch (error) {
-    res.status(400).json({ message: "", error })
-
+    console.error("addExpense error:", error);
+    res.status(400).json({ message: "Failed to add expense. Please try again.", error: error.message })
   }
 }
 
