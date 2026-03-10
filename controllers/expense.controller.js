@@ -3,11 +3,12 @@ import { Expense } from "../models/expense.model.js";
 
 export const addExpense = async (req, res) => {
 
-  const { userId, amount, category, date, notes, currency, tags } = req.body
+  const { amount, category, date, notes, currency, tags } = req.body
+  const userId = req.session.userId;
 
   try {
-    if ([userId, amount, category, date].some((item) => item === "" || item === undefined)) {
-      return res.status(401).json({ message: "All top 3 fields are required" })
+    if ([amount, category, date].some((item) => item === "" || item === undefined)) {
+      return res.status(400).json({ message: "All required fields must be provided" })
     }
     const expense = await Expense.create({
       userId,
@@ -31,7 +32,7 @@ export const addExpense = async (req, res) => {
 
 export const getExpenses = async (req, res) => {
   try {
-    const { userId } = req.query; // frontend should pass ?userId=...
+    const userId = req.session.userId;
 
     const expenses = await Expense.find({ userId }).sort({ date: 1 });
 

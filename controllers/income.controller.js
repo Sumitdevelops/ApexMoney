@@ -3,11 +3,12 @@ import { Income } from "../models/income.model.js";
 
 export const addIncome = async (req, res) => {
 
-  const { userId, amount, category, date, notes, currency, tags, source } = req.body
+  const { amount, category, date, notes, currency, tags, source } = req.body
+  const userId = req.session.userId;
 
   try {
-    if ([userId, amount, category, date].some((item) => item === "" || item === undefined)) {
-      return res.status(401).json({ message: "All top 3 fields are required" })
+    if ([amount, category, date].some((item) => item === "" || item === undefined)) {
+      return res.status(400).json({ message: "All required fields must be provided" })
     }
     const income = await Income.create({
       userId,
@@ -33,7 +34,7 @@ export const addIncome = async (req, res) => {
 
 export const getIncome = async (req, res) => {
   try {
-    const { userId } = req.query; // frontend should pass ?userId=...
+    const userId = req.session.userId;
 
     const income = await Income.find({ userId }).sort({ date: 1 });
 
