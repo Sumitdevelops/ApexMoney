@@ -1,6 +1,12 @@
 import bcrypt from 'bcrypt'
 import { User } from '../models/user.model.js'
 import { Resend } from 'resend'
+import { Expense } from '../models/expense.model.js'
+import { Income } from '../models/income.model.js'
+import { FinancialGoal } from '../models/financialGoal.model.js'
+import { Subscription } from '../models/subscription.model.js'
+import { AIInsight } from '../models/aiInsight.model.js'
+import { BillReminder } from '../models/billReminder.model.js'
 
 // Send OTP email via Resend HTTP API (works reliably from cloud platforms like Render)
 const sendOTPEmail = async (toEmail, otp) => {
@@ -268,6 +274,52 @@ export const resetPasswordWithOTP = async (req, res) => {
    } catch (error) {
       console.log("resetPasswordWithOTP error:", error);
       return res.status(500).json({ message: "Unable to reset password" });
+   }
+};
+
+export const deleteAccount = async (req, res) => {
+   try {
+      if (!req.session.userId) {
+         return res.status(401).json({ message: "User not logged in" });
+      }
+
+      const userId = req.session.userId;
+
+      // Verify the user exists
+      const user = await User.findById(userId);
+      if (!user) {
+         return res.status(404).json({ message: "User not found" });
+      }
+
+      // Delete all associated records
+      await Promise.all([
+         Expense.deleteMany({ userId }),
+         Income.deleteMany({ userId }),
+         FinancialGoal.deleteMany({ userId }),
+         Subscription.deleteMany({ userId }),
+         AIInsight.deleteMany({ userId }),
+         BillReminder.deleteMany({ userId }),
+      ]);
+
+      // Delete the user document
+      await User.findByIdAndDelete(userId);
+
+      // Destroy the session
+      req.session.destroy((err) => {
+         if (err) {
+            console.error("Session destroy error during account deletion:", err);
+         }
+         res.clearCookie('sessionId');
+         res.clearCookie('connect.sid');
+         return res.status(200).json({
+            success: true,
+            message: "Account deleted successfully"
+         });
+      });
+
+   } catch (error) {
+      console.error("deleteAccount error:", error);
+      return res.status(500).json({ message: "Failed to delete account" });
    }
 };
 
