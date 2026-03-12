@@ -3,6 +3,9 @@ dotenv.config()
 import express from 'express'
 import session from 'express-session'
 import MongoStore from 'connect-mongo'
+import helmet from 'helmet'
+import cors from 'cors'
+import rateLimit from 'express-rate-limit'
 import { connectDb } from './config/Db.js'
 import userRouter from './routers/user.router.js'
 import expenseRouter from './routers/expense.router.js'
@@ -12,19 +15,40 @@ import goalRouter from './routers/goal.router.js'
 import subscriptionRouter from './routers/subscription.router.js'
 import reminderRouter from './routers/reminder.router.js'
 import authRouter from './routers/auth.router.js'
-import cors from "cors"
 import passport from './config/passport.js'
 const app = express()
 
 app.set('trust proxy', 1)
 
+// --- Security Middleware ---
+
+// Helmet: set secure HTTP headers
+app.use(helmet())
+
+// CORS: allow requests only from known frontend origins
 const corsOptions = {
-    origin: ["http://localhost:5173", "http://localhost:5174", "https://apexmoney.netlify.app"],// Replace with your frontend's URL
+    origin: [
+        process.env.FRONTEND_URL,
+        "http://localhost:5173",
+        "http://localhost:5174"
+    ].filter(Boolean),
+    methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
 };
-
 app.use(cors(corsOptions));
-app.use(express.json())
+
+// Limit request body size to prevent large-payload attacks
+app.use(express.json({ limit: "1mb" }))
+
+// Rate limiting: 100 requests per 15 minutes per IP
+const rateLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    message: { error: "Too many requests. Please try again later." },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+app.use(rateLimiter)
 
 const isProduction = process.env.NODE_ENV?.trim().toLowerCase() === "production";
 
