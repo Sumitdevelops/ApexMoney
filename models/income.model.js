@@ -21,6 +21,11 @@ const IncomeSchema = mongoose.Schema({
     notes: {
         type: String,
     },
+    currency: {
+        type: String,
+        default: 'INR',
+        enum: ['INR', 'USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'SGD', 'AED', 'CHF']
+    },
     // Premium Features
     source: {
         type: String,
