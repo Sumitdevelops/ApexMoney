@@ -150,13 +150,13 @@ export const getGoalInsights = async (req, res) => {
                 insights.onTrack = false;
                 insights.recommendations.push({
                     type: 'increase_contribution',
-                    message: `Increase monthly contribution to $${requiredMonthly.toFixed(2)} to reach your goal on time`,
+                    message: `Increase monthly contribution to ${requiredMonthly.toFixed(2)} to reach your goal on time`,
                     priority: 'high'
                 });
             } else if (goal.monthlyContribution === 0) {
                 insights.recommendations.push({
                     type: 'set_contribution',
-                    message: `Set up automatic contributions of $${requiredMonthly.toFixed(2)}/month`,
+                    message: `Set up automatic contributions of ${requiredMonthly.toFixed(2)}/month`,
                     priority: 'high'
                 });
             }

@@ -95,7 +95,7 @@ app.use('/auth', authRouter)
 
 connectDb().then(() => {
     app.listen(process.env.PORT || 8000, () => {
-        console.log(`App is listening on post ${process.env.PORT || 8000}`);
+        console.log(`App is listening on port ${process.env.PORT || 8000}`);
     })
 }).catch((error) => {
     console.error("Database connection failed:", error);

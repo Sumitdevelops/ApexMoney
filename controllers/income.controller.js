@@ -7,7 +7,7 @@ export const addIncome = async (req, res) => {
 
   try {
     if ([userId, amount, category, date].some((item) => item === "" || item === undefined)) {
-      return res.status(401).json({ message: "All top 3 fields are required" })
+      return res.status(400).json({ message: "All fields are required" })
     }
     const income = await Income.create({
       userId,
@@ -47,23 +47,23 @@ export const updateIncome = async (req, res) => {
   try {
     const { incomeId } = req.params
     if (!incomeId) {
-      res.status(401).json({ message: "problem in updating expense, no userID found" })
+      res.status(400).json({ message: "problem in updating income, no incomeID found" })
     }
     const updateIncome = await Income.findByIdAndUpdate(incomeId, req.body, {
       new: true
     })
 
     if (!updateIncome) {
-      res.status(400).json({ message: "Unable to fetch updated expense" })
+      res.status(404).json({ message: "Unable to find income to update" })
     }
     res.status(200).json({
       success: true,
       updateIncome: updateIncome,
-      message: "expense updated successfully"
+      message: "income updated successfully"
 
     })
   } catch (error) {
-    res.status(401).json({ message: "User unauthorized" })
+    res.status(500).json({ message: "Internal server error" })
   }
 }
 
@@ -71,20 +71,20 @@ export const deleteIncome = async (req, res) => {
   try {
     const { incomeId } = req.params
     if (!incomeId) {
-      res.status(400).json({ message: "unable to find userId to delete Expense" })
+      res.status(400).json({ message: "unable to find incomeId to delete income" })
     }
     const deleteIncome = await Income.findByIdAndDelete(incomeId, {
       new: true
     })
     if (!deleteIncome) {
-      res.status(401).json({ message: "unable to delete expense" })
+      res.status(404).json({ message: "unable to find income" })
     }
     res.status(200).json({
       success: true,
       deleteIncome: deleteIncome,
-      message: "Expense deleted successfully"
+      message: "Income deleted successfully"
     })
   } catch (error) {
-    res.status(401).json({ message: "user unauthorized" })
+    res.status(500).json({ message: "Internal server error" })
   }
 }

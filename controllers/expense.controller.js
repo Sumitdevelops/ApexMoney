@@ -7,7 +7,7 @@ export const addExpense = async (req, res) => {
 
   try {
     if ([userId, amount, category, date].some((item) => item === "" || item === undefined)) {
-      return res.status(401).json({ message: "All top 3 fields are required" })
+      return res.status(400).json({ message: "All fields are required" })
     }
     const expense = await Expense.create({
       userId,
@@ -45,7 +45,7 @@ export const updateExpense = async (req, res) => {
   try {
     const { expenseId } = req.params
     if (!expenseId) {
-      res.status(401).json({ message: "problem in updating expense, no userID found" })
+      res.status(400).json({ message: "problem in updating expense, no expenseID found" })
     }
     const updateExpense = await Expense.findByIdAndUpdate(expenseId, req.body, {
       new: true
@@ -61,7 +61,7 @@ export const updateExpense = async (req, res) => {
 
     })
   } catch (error) {
-    res.status(401).json({ message: "User unauthorized" })
+    res.status(500).json({ message: "Internal server error" })
   }
 }
 
@@ -75,7 +75,7 @@ export const deleteExpense = async (req, res) => {
       new: true
     })
     if (!deleteExpense) {
-      res.status(401).json({ message: "unable to delete expense" })
+      res.status(404).json({ message: "unable to find expense" })
     }
     res.status(200).json({
       success: true,
@@ -83,6 +83,6 @@ export const deleteExpense = async (req, res) => {
       message: "Expense deleted successfully"
     })
   } catch (error) {
-    res.status(401).json({ message: "user unauthorized" })
+    res.status(500).json({ message: "Internal server error" })
   }
 }
