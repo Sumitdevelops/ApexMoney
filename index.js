@@ -68,7 +68,7 @@ const sessionConfig = {
         secure: true,     // HTTPS only (required when sameSite: "none")
         httpOnly: true,   // Prevent JS access
         maxAge: 1000 * 60 * 60 * 24,
-        domain: undefined // Let browser set it automatically based on request
+        domain: isProduction ? ".apexmoney.dev" : undefined // Share cookie across subdomains in production
     }
 };
 
